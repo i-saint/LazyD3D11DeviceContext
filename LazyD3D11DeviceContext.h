@@ -30,12 +30,12 @@ public:
         ID3D11HullShader        *HSShader;
         ID3D11DomainShader      *DSShader;
         ID3D11ComputeShader     *CSShader;
-        ID3D11ClassInstance     *const*PSClassInstances;
-        ID3D11ClassInstance     *const*VSClassInstances;
-        ID3D11ClassInstance     *const*GSClassInstances;
-        ID3D11ClassInstance     *const*HSClassInstances;
-        ID3D11ClassInstance     *const*DSClassInstances;
-        ID3D11ClassInstance     *const*CSClassInstances;
+        ID3D11ClassInstance     *PSClassInstances[256]; // 定数が見つからないが、ドキュメントには最大 256 とある
+        ID3D11ClassInstance     *VSClassInstances[256];
+        ID3D11ClassInstance     *GSClassInstances[256];
+        ID3D11ClassInstance     *HSClassInstances[256];
+        ID3D11ClassInstance     *DSClassInstances[256];
+        ID3D11ClassInstance     *CSClassInstances[256];
         UINT                    PSNumClassInstances;
         UINT                    VSNumClassInstances;
         UINT                    GSNumClassInstances;
@@ -60,6 +60,8 @@ public:
         ID3D11SamplerState *HSSamplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
         ID3D11SamplerState *DSSamplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
         ID3D11SamplerState *CSSamplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
+        ID3D11UnorderedAccessView *CSUnorderedAccesses[D3D11_PS_CS_UAV_REGISTER_COUNT];
+        UINT CSUnorderedInitialCounts[D3D11_PS_CS_UAV_REGISTER_COUNT];
         D3D11_PRIMITIVE_TOPOLOGY IAPrimitiveTopology;
         ID3D11InputLayout *IAInputLayout;
         ID3D11Buffer *IAIndexBuffer;
@@ -89,10 +91,55 @@ public:
         RenderStates();
     };
 
+    struct CallStates
+    {
+        bool PSSetShader;
+        bool VSSetShader;
+        bool GSSetShader;
+        bool HSSetShader;
+        bool DSSetShader;
+        bool CSSetShader;
+        bool PSSetShaderResources;
+        bool VSSetShaderResources;
+        bool GSSetShaderResources;
+        bool HSSetShaderResources;
+        bool DSSetShaderResources;
+        bool CSSetShaderResources;
+        bool PSSetConstantBuffers;
+        bool VSSetConstantBuffers;
+        bool GSSetConstantBuffers;
+        bool HSSetConstantBuffers;
+        bool DSSetConstantBuffers;
+        bool CSSetConstantBuffers;
+        bool PSSetSamplers;
+        bool VSSetSamplers;
+        bool GSSetSamplers;
+        bool HSSetSamplers;
+        bool DSSetSamplers;
+        bool CSSetSamplers;
+        bool CSSetUnorderedAccessViews;
+        bool IASetInputLayout;
+        bool IASetVertexBuffers;
+        bool IASetIndexBuffer;
+        bool IASetPrimitiveTopology;
+        bool OMSetRenderTargets;
+        bool OMSetRenderTargetsAndUnorderedAccessViews;
+        bool OMSetBlendState;
+        bool OMSetDepthStencilState;
+        bool SOSetTargets;
+        bool RSSetState;
+        bool RSSetViewports;
+        bool RSSetScissorRects;
+
+        CallStates();
+        void clear();
+    };
+
 private:
     ID3D11DeviceContext *m_super;
     RenderStates m_rs_prev;
     RenderStates m_rs;
+    CallStates m_cs;
 
     void AcualSetRenderState();
     LazyD3D11DeviceContext(ID3D11DeviceContext *_super);
