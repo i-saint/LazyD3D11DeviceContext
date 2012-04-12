@@ -137,7 +137,7 @@ public:
 
 private:
     ID3D11DeviceContext *m_super;
-    RenderStates m_rs_prev;
+    RenderStates m_rsp;
     RenderStates m_rs;
     CallStates m_cs;
 
