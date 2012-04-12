@@ -14,7 +14,9 @@ inline void addref_and_copy_n(Iter first1, int n, Iter first2)
 {
     Iter last1 = first1 + n;
     for(Iter i=first1; i!=last1; ++i) {
-        (*i)->AddRef();
+        if(*i!=NULL) {
+            (*i)->AddRef();
+        }
     }
     copy_n(first1, n, first2);
 }
