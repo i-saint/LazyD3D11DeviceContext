@@ -2,6 +2,22 @@
 #define _LazyD3D11DeviceContext_h_
 #include <D3D11.h>
 
+// D3D11 の DeviceContext は、重複する render state の変更を最適化してくれません。
+// 例えば、PSSetShader() などを同じ引数で連続して呼び出した場合もドライバで逐次ステート変更が起こり、
+// draw call が非常に多い場合馬鹿にならないコストが発生します。
+// 
+// この問題を緩和するため、LazyD3D11DeviceContext はステートの変更をバッファリングし、
+// Draw*() もしくは Dispatch*() を呼ぶ直前に変更があった部分だけ render state を更新します。
+// 
+// 使い方は、通常通り ID3D11DeviceContext を作成した後、LazyD3D11DeviceContext::Create() にそれを渡して塗り替えるだけです。
+// 開放は Release() が 0 になるタイミングで勝手に行います。
+// 
+// ex)
+// D3D11CreateDeviceAndSwapChain( NULL, g_driverType, NULL, createDeviceFlags, featureLevels, numFeatureLevels,
+//                                     D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &g_featureLevel, &g_pImmediateContext );
+// g_pImmediateContext = LazyD3D11DeviceContext::Create(g_pImmediateContext);
+
+
 class LazyD3D11DeviceContext : public ID3D11DeviceContext
 {
 typedef ID3D11DeviceContext super;
