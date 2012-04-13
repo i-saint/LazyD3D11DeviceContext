@@ -1,16 +1,16 @@
-#ifndef _LazyD3D11DeviceContext_h_
+ï»¿#ifndef _LazyD3D11DeviceContext_h_
 #define _LazyD3D11DeviceContext_h_
 #include <D3D11.h>
 
-// D3D11 ‚Ì DeviceContext ‚ÍAd•¡‚·‚é render state ‚Ì•ÏX‚ğÅ“K‰»‚µ‚Ä‚­‚ê‚Ü‚¹‚ñB
-// —á‚¦‚ÎAPSSetShader() ‚È‚Ç‚ğ“¯‚¶ˆø”‚Å˜A‘±‚µ‚ÄŒÄ‚Ño‚µ‚½ê‡‚àƒhƒ‰ƒCƒo‚Å’€ŸƒXƒe[ƒg•ÏX‚ª‹N‚±‚èA
-// draw call ‚ª”ñí‚É‘½‚¢ê‡”n­‚É‚È‚ç‚È‚¢ƒRƒXƒg‚ª”­¶‚µ‚Ü‚·B
+// D3D11 ã® DeviceContext ã¯ã€é‡è¤‡ã™ã‚‹ render state ã®å¤‰æ›´ã‚’æœ€é©åŒ–ã—ã¦ãã‚Œã¾ã›ã‚“ã€‚
+// ä¾‹ãˆã°ã€PSSetShader() ãªã©ã‚’åŒã˜å¼•æ•°ã§é€£ç¶šã—ã¦å‘¼ã³å‡ºã—ãŸå ´åˆã‚‚ãƒ‰ãƒ©ã‚¤ãƒã§é€æ¬¡ã‚¹ãƒ†ãƒ¼ãƒˆå¤‰æ›´ãŒèµ·ã“ã‚Šã€
+// draw call ãŒéå¸¸ã«å¤šã„å ´åˆé¦¬é¹¿ã«ãªã‚‰ãªã„ã‚³ã‚¹ãƒˆãŒç™ºç”Ÿã—ã¾ã™ã€‚
 // 
-// ‚±‚Ì–â‘è‚ğŠÉ˜a‚·‚é‚½‚ßALazyD3D11DeviceContext ‚ÍƒXƒe[ƒg‚Ì•ÏX‚ğƒoƒbƒtƒ@ƒŠƒ“ƒO‚µA
-// Draw*() ‚à‚µ‚­‚Í Dispatch*() ‚ğŒÄ‚Ô’¼‘O‚É•ÏX‚ª‚ ‚Á‚½•”•ª‚¾‚¯ render state ‚ğXV‚µ‚Ü‚·B
+// ã“ã®å•é¡Œã‚’ç·©å’Œã™ã‚‹ãŸã‚ã€LazyD3D11DeviceContext ã¯ã‚¹ãƒ†ãƒ¼ãƒˆã®å¤‰æ›´ã‚’ãƒãƒƒãƒ•ã‚¡ãƒªãƒ³ã‚°ã—ã€
+// Draw*() ã‚‚ã—ãã¯ Dispatch*() ã‚’å‘¼ã¶ç›´å‰ã«å¤‰æ›´ãŒã‚ã£ãŸéƒ¨åˆ†ã ã‘ render state ã‚’æ›´æ–°ã—ã¾ã™ã€‚
 // 
-// g‚¢•û‚ÍA’Êí’Ê‚è ID3D11DeviceContext ‚ğì¬‚µ‚½ŒãALazyD3D11DeviceContext::Create() ‚É‚»‚ê‚ğ“n‚µ‚Ä“h‚è‘Ö‚¦‚é‚¾‚¯‚Å‚·B
-// ŠJ•ú‚Í Release() ‚ª 0 ‚É‚È‚éƒ^ƒCƒ~ƒ“ƒO‚ÅŸè‚És‚¢‚Ü‚·B
+// ä½¿ã„æ–¹ã¯ã€é€šå¸¸é€šã‚Š ID3D11DeviceContext ã‚’ä½œæˆã—ãŸå¾Œã€LazyD3D11DeviceContext::Create() ã«ãã‚Œã‚’æ¸¡ã—ã¦å¡—ã‚Šæ›¿ãˆã‚‹ã ã‘ã§ã™ã€‚
+// é–‹æ”¾ã¯ Release() ãŒ 0 ã«ãªã‚‹ã‚¿ã‚¤ãƒŸãƒ³ã‚°ã§å‹æ‰‹ã«è¡Œã„ã¾ã™ã€‚
 // 
 // ex)
 // D3D11CreateDeviceAndSwapChain( NULL, g_driverType, NULL, createDeviceFlags, featureLevels, numFeatureLevels,
@@ -30,7 +30,7 @@ public:
         ID3D11HullShader        *HSShader;
         ID3D11DomainShader      *DSShader;
         ID3D11ComputeShader     *CSShader;
-        ID3D11ClassInstance     *PSClassInstances[256]; // ’è”‚ªŒ©‚Â‚©‚ç‚È‚¢‚ªAƒhƒLƒ…ƒƒ“ƒg‚É‚ÍÅ‘å 256 ‚Æ‚ ‚é
+        ID3D11ClassInstance     *PSClassInstances[256]; // å®šæ•°ãŒè¦‹ã¤ã‹ã‚‰ãªã„ãŒã€ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆã«ã¯æœ€å¤§ 256 ã¨ã‚ã‚‹
         ID3D11ClassInstance     *VSClassInstances[256];
         ID3D11ClassInstance     *GSClassInstances[256];
         ID3D11ClassInstance     *HSClassInstances[256];
@@ -132,7 +132,7 @@ public:
         bool RSSetScissorRects;
 
         CallStates();
-        void clear();
+        void Clear();
     };
 
 private:
