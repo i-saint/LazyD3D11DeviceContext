@@ -1,6 +1,8 @@
 ﻿#include "LazyD3D11DeviceContext.h"
 #include <algorithm>
 
+using std::fill_n;
+
 template<class Iter1, class Iter2>
 inline bool equal_n(Iter1 first1, int n, Iter2 first2)
 {
@@ -23,6 +25,17 @@ inline void addref_and_copy_n(Iter1 first1, int n, Iter2 first2)
         }
     }
     copy_n(first1, n, first2);
+}
+
+template<class Iter1>
+inline void release_n(Iter1 first1, int n)
+{
+    Iter1 last1 = first1 + n;
+    for(Iter1 i=first1; i!=last1; ++i) {
+        if(*i!=NULL) {
+            (*i)->Release();
+        }
+    }
 }
 
 
@@ -116,8 +129,7 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
 
 
     if(m_cs.OMSetRenderTargets) {
-        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
-            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
+        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil )
         {
             // RenderTarget に設定されているリソースを ShaderResource に設定しようとすると強制的に NULL にされるため、
@@ -126,6 +138,36 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
             ID3D11RenderTargetView *NullRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
             std::fill_n(NullRTVs, _countof(NullRTVs), (ID3D11RenderTargetView*)NULL);
             m_super->OMSetRenderTargets(_countof(NullRTVs), NullRTVs, NULL);
+        }
+    }
+    if(m_cs.OMSetRenderTargetsAndUnorderedAccessViews) {
+        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
+            m_rs.OMDepthStencil!=m_rsp.OMDepthStencil ||
+            !equal_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses) ||
+            !equal_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts) )
+        {
+            // 同上
+            ID3D11RenderTargetView *NullRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+            ID3D11UnorderedAccessView *NullUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT];
+            UINT UAVInitialCounts[D3D11_PS_CS_UAV_REGISTER_COUNT];
+            std::fill_n(NullRTVs, _countof(NullRTVs), (ID3D11RenderTargetView*)NULL);
+            std::fill_n(NullUAVs, _countof(NullUAVs), (ID3D11UnorderedAccessView*)NULL);
+            std::fill_n(UAVInitialCounts, _countof(UAVInitialCounts), 0);
+            m_super->OMSetRenderTargetsAndUnorderedAccessViews(
+                _countof(NullRTVs), NullRTVs, NULL,
+                0, _countof(NullUAVs), NullUAVs, UAVInitialCounts);
+        }
+    }
+    if(m_cs.CSSetUnorderedAccessViews) {
+        if( !equal_n(m_rs.CSUnorderedAccesses, _countof(m_rs.CSUnorderedAccesses), m_rsp.CSUnorderedAccesses) ||
+            !equal_n(m_rs.CSUnorderedInitialCounts, _countof(m_rs.CSUnorderedInitialCounts), m_rsp.CSUnorderedInitialCounts) )
+        {
+            // 同上
+            ID3D11UnorderedAccessView *NullUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT];
+            UINT UAVInitialCounts[D3D11_PS_CS_UAV_REGISTER_COUNT];
+            std::fill_n(NullUAVs, _countof(NullUAVs), (ID3D11UnorderedAccessView*)NULL);
+            std::fill_n(UAVInitialCounts, _countof(UAVInitialCounts), 0);
+            m_super->CSSetUnorderedAccessViews(0, _countof(NullUAVs), NullUAVs, UAVInitialCounts);
         }
     }
 
@@ -293,28 +335,24 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
 
 
     if(m_cs.OMSetRenderTargets) {
-        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
-            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
+        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil )
         {
-            m_super->OMSetRenderTargets(m_rs.OMNumRenderTargets, m_rs.OMRenderTargets, m_rs.OMDepthStencil);
-            m_rsp.OMNumRenderTargets = m_rs.OMNumRenderTargets;
-            copy_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets);
+            m_super->OMSetRenderTargets(_countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, m_rs.OMDepthStencil);
+            copy_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets);
             m_rsp.OMDepthStencil = m_rs.OMDepthStencil;
         }
     }
     if(m_cs.OMSetRenderTargetsAndUnorderedAccessViews) {
-        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
-            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
+        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil ||
             !equal_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses) ||
             !equal_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts) )
         {
             m_super->OMSetRenderTargetsAndUnorderedAccessViews(
-                m_rs.OMNumRenderTargets, m_rs.OMRenderTargets, m_rs.OMDepthStencil,
+                _countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, m_rs.OMDepthStencil,
                 0, _countof(m_rs.OMUnorderedAccesses), m_rs.OMUnorderedAccesses, m_rs.OMUnorderedInitialCounts);
-            m_rsp.OMNumRenderTargets = m_rs.OMNumRenderTargets;
-            copy_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets);
+            copy_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets);
             m_rsp.OMDepthStencil = m_rs.OMDepthStencil;
             copy_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses);
             copy_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts);
@@ -380,6 +418,105 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
 
 
     m_cs.Clear();
+}
+
+
+void LazyD3D11DeviceContext::SyncToActualDeviceContext()
+{
+    m_super->PSGetShader(&m_rs.PSShader, m_rs.PSClassInstances, &m_rs.PSNumClassInstances);
+    m_super->VSGetShader(&m_rs.VSShader, m_rs.VSClassInstances, &m_rs.VSNumClassInstances);
+    m_super->GSGetShader(&m_rs.GSShader, m_rs.GSClassInstances, &m_rs.GSNumClassInstances);
+    m_super->HSGetShader(&m_rs.HSShader, m_rs.HSClassInstances, &m_rs.HSNumClassInstances);
+    m_super->DSGetShader(&m_rs.DSShader, m_rs.DSClassInstances, &m_rs.DSNumClassInstances);
+    m_super->CSGetShader(&m_rs.CSShader, m_rs.CSClassInstances, &m_rs.CSNumClassInstances);
+    release_n(&m_rs.PSShader, 1); release_n(m_rs.PSClassInstances, _countof(m_rs.PSClassInstances));
+    release_n(&m_rs.VSShader, 1); release_n(m_rs.VSClassInstances, _countof(m_rs.VSClassInstances));
+    release_n(&m_rs.GSShader, 1); release_n(m_rs.GSClassInstances, _countof(m_rs.GSClassInstances));
+    release_n(&m_rs.HSShader, 1); release_n(m_rs.HSClassInstances, _countof(m_rs.HSClassInstances));
+    release_n(&m_rs.DSShader, 1); release_n(m_rs.DSClassInstances, _countof(m_rs.DSClassInstances));
+    release_n(&m_rs.CSShader, 1); release_n(m_rs.CSClassInstances, _countof(m_rs.CSClassInstances));
+
+    m_super->PSGetShaderResources(0, _countof(m_rs.PSShaderResources), m_rs.PSShaderResources);
+    m_super->VSGetShaderResources(0, _countof(m_rs.VSShaderResources), m_rs.VSShaderResources);
+    m_super->GSGetShaderResources(0, _countof(m_rs.GSShaderResources), m_rs.GSShaderResources);
+    m_super->HSGetShaderResources(0, _countof(m_rs.HSShaderResources), m_rs.HSShaderResources);
+    m_super->DSGetShaderResources(0, _countof(m_rs.DSShaderResources), m_rs.DSShaderResources);
+    m_super->CSGetShaderResources(0, _countof(m_rs.CSShaderResources), m_rs.CSShaderResources);
+    release_n(m_rs.PSShaderResources, _countof(m_rs.PSShaderResources));
+    release_n(m_rs.VSShaderResources, _countof(m_rs.VSShaderResources));
+    release_n(m_rs.GSShaderResources, _countof(m_rs.GSShaderResources));
+    release_n(m_rs.HSShaderResources, _countof(m_rs.HSShaderResources));
+    release_n(m_rs.DSShaderResources, _countof(m_rs.DSShaderResources));
+    release_n(m_rs.CSShaderResources, _countof(m_rs.CSShaderResources));
+
+    m_super->PSGetConstantBuffers(0, _countof(m_rs.PSConstantBuffers), m_rs.PSConstantBuffers);
+    m_super->VSGetConstantBuffers(0, _countof(m_rs.VSConstantBuffers), m_rs.VSConstantBuffers);
+    m_super->GSGetConstantBuffers(0, _countof(m_rs.GSConstantBuffers), m_rs.GSConstantBuffers);
+    m_super->HSGetConstantBuffers(0, _countof(m_rs.HSConstantBuffers), m_rs.HSConstantBuffers);
+    m_super->DSGetConstantBuffers(0, _countof(m_rs.DSConstantBuffers), m_rs.DSConstantBuffers);
+    m_super->CSGetConstantBuffers(0, _countof(m_rs.CSConstantBuffers), m_rs.CSConstantBuffers);
+    release_n(m_rs.PSConstantBuffers, _countof(m_rs.PSConstantBuffers));
+    release_n(m_rs.VSConstantBuffers, _countof(m_rs.VSConstantBuffers));
+    release_n(m_rs.GSConstantBuffers, _countof(m_rs.GSConstantBuffers));
+    release_n(m_rs.HSConstantBuffers, _countof(m_rs.HSConstantBuffers));
+    release_n(m_rs.DSConstantBuffers, _countof(m_rs.DSConstantBuffers));
+    release_n(m_rs.CSConstantBuffers, _countof(m_rs.CSConstantBuffers));
+
+    m_super->PSGetSamplers(0, _countof(m_rs.PSSamplers), m_rs.PSSamplers);
+    m_super->VSGetSamplers(0, _countof(m_rs.VSSamplers), m_rs.VSSamplers);
+    m_super->GSGetSamplers(0, _countof(m_rs.GSSamplers), m_rs.GSSamplers);
+    m_super->HSGetSamplers(0, _countof(m_rs.HSSamplers), m_rs.HSSamplers);
+    m_super->DSGetSamplers(0, _countof(m_rs.DSSamplers), m_rs.DSSamplers);
+    m_super->CSGetSamplers(0, _countof(m_rs.CSSamplers), m_rs.CSSamplers);
+    release_n(m_rs.PSSamplers, _countof(m_rs.PSSamplers));
+    release_n(m_rs.VSSamplers, _countof(m_rs.VSSamplers));
+    release_n(m_rs.GSSamplers, _countof(m_rs.GSSamplers));
+    release_n(m_rs.HSSamplers, _countof(m_rs.HSSamplers));
+    release_n(m_rs.DSSamplers, _countof(m_rs.DSSamplers));
+    release_n(m_rs.CSSamplers, _countof(m_rs.CSSamplers));
+
+    m_super->CSGetUnorderedAccessViews(0, _countof(m_rs.CSUnorderedAccesses), m_rs.CSUnorderedAccesses);
+    release_n(m_rs.CSUnorderedAccesses, _countof(m_rs.CSUnorderedAccesses));
+
+    m_super->IAGetInputLayout(&m_rs.IAInputLayout);
+    release_n(&m_rs.IAInputLayout, 1);
+
+    m_super->IAGetVertexBuffers(0, _countof(m_rs.IAVertexBuffers), m_rs.IAVertexBuffers, m_rs.IAVertexBufferStrides, m_rs.IAVertexBufferOffsets);
+    release_n(m_rs.IAVertexBuffers, _countof(m_rs.IAVertexBuffers));
+
+    m_super->IAGetIndexBuffer(&m_rs.IAIndexBuffer, &m_rs.IAIndexBufferFormat, &m_rs.IAIndexBufferOffset);
+    release_n(&m_rs.IAIndexBuffer, 1);
+
+    m_super->IAGetPrimitiveTopology(&m_rs.IAPrimitiveTopology);
+
+    m_super->OMGetRenderTargets(_countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, &m_rs.OMDepthStencil);
+    release_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets));
+    release_n(&m_rs.OMDepthStencil, 1);
+
+    m_super->OMGetRenderTargetsAndUnorderedAccessViews(
+        _countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, &m_rs.OMDepthStencil,
+        0, _countof(m_rs.OMUnorderedAccesses), m_rs.OMUnorderedAccesses);
+    release_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets));
+    release_n(&m_rs.OMDepthStencil, 1);
+    release_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses));
+
+    m_super->OMGetBlendState(&m_rs.OMBlendState, m_rs.OMBlendFactor, &m_rs.OMBlendSampleMask);
+    release_n(&m_rs.OMBlendState, 1);
+
+    m_super->OMGetDepthStencilState(&m_rs.OMDepthStencilState, &m_rs.OMStencilRef);
+    release_n(&m_rs.OMDepthStencilState, 1);
+
+    m_super->SOGetTargets(_countof(m_rs.SOTargets), m_rs.SOTargets);
+    release_n(m_rs.SOTargets, _countof(m_rs.SOTargets));
+
+    m_super->RSGetState(&m_rs.RSRasterState);
+    release_n(&m_rs.RSRasterState, 1);
+
+    m_super->RSGetViewports(&m_rs.RSNumViewports, m_rs.RSViewports);
+
+    m_super->RSGetScissorRects(&m_rs.RSNumScissorRects, m_rs.RSScissorRects);
+
+    m_rsp = m_rs;
 }
 
 LazyD3D11DeviceContext::LazyD3D11DeviceContext( ID3D11DeviceContext *_super )
@@ -661,7 +798,7 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::RSSetScissorRects( UINT NumRects,
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargets( UINT NumViews, ID3D11RenderTargetView *const *ppRenderTargetViews, ID3D11DepthStencilView *pDepthStencilView)
 {
     m_cs.OMSetRenderTargets = true;
-    m_rs.OMNumRenderTargets = NumViews;
+    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
     copy_n(ppRenderTargetViews, NumViews, m_rs.OMRenderTargets);
     m_rs.OMDepthStencil = pDepthStencilView;
 }
@@ -669,9 +806,8 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargets( UINT NumViews
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(  UINT NumRTVs, ID3D11RenderTargetView *const *ppRenderTargetViews, ID3D11DepthStencilView *pDepthStencilView, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView *const *ppUnorderedAccessViews, const UINT *pUAVInitialCounts)
 {
     m_cs.OMSetRenderTargetsAndUnorderedAccessViews = true;
-    m_rs.OMNumRenderTargets = NumRTVs;
-    copy_n(ppRenderTargetViews, NumRTVs, m_rs.OMRenderTargets);
-    m_rs.OMDepthStencil = pDepthStencilView;
+    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
+    copy_n(ppRenderTargetViews, NumRTVs, m_rs.OMRenderTargets);    m_rs.OMDepthStencil = pDepthStencilView;
     copy_n(ppUnorderedAccessViews, NumUAVs, m_rs.OMUnorderedAccesses+UAVStartSlot);
     copy_n(pUAVInitialCounts, NumUAVs, m_rs.OMUnorderedInitialCounts+UAVStartSlot);
 }
@@ -853,86 +989,137 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::ResolveSubresource( ID3D11Resourc
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ExecuteCommandList( ID3D11CommandList *pCommandList, BOOL RestoreContextState )
 {
     m_super->ExecuteCommandList(pCommandList, RestoreContextState);
+    if(!RestoreContextState) {
+        SyncToActualDeviceContext();
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::VSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.VSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.VSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::PSGetShaderResources( UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView **ppShaderResourceViews )
 {
-    addref_and_copy_n(m_rs.PSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.PSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::PSGetShader( ID3D11PixelShader **ppPixelShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.PSShader, 1, ppPixelShader);
-    addref_and_copy_n(m_rs.PSClassInstances, _countof(m_rs.PSClassInstances), ppClassInstances);
-    *pNumClassInstances = m_rs.PSNumClassInstances;
+    if(ppPixelShader != NULL) {
+        addref_and_copy_n(&m_rs.PSShader, 1, ppPixelShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.PSClassInstances, _countof(m_rs.PSClassInstances), ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.PSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::PSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.PSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.PSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::VSGetShader( ID3D11VertexShader **ppVertexShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.VSShader, 1, ppVertexShader);
-    addref_and_copy_n(m_rs.VSClassInstances, _countof(m_rs.VSClassInstances), ppClassInstances);
-    *pNumClassInstances = m_rs.VSNumClassInstances;
+    if(ppVertexShader != NULL) {
+        addref_and_copy_n(&m_rs.VSShader, 1, ppVertexShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.VSClassInstances, _countof(m_rs.VSClassInstances), ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.VSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::PSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.PSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.PSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::IAGetInputLayout( ID3D11InputLayout **ppInputLayout )
 {
-    addref_and_copy_n(&m_rs.IAInputLayout, 1, ppInputLayout);
+    if(ppInputLayout != NULL) {
+        addref_and_copy_n(&m_rs.IAInputLayout, 1, ppInputLayout);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::IAGetVertexBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppVertexBuffers, UINT *pStrides, UINT *pOffsets )
 {
-    addref_and_copy_n(m_rs.IAVertexBuffers+StartSlot, NumBuffers, ppVertexBuffers);
-    copy_n(m_rs.IAVertexBufferStrides+StartSlot, NumBuffers, pStrides);
-    copy_n(m_rs.IAVertexBufferOffsets+StartSlot, NumBuffers, pOffsets);
+    if(ppVertexBuffers != NULL) {
+        addref_and_copy_n(m_rs.IAVertexBuffers+StartSlot, NumBuffers, ppVertexBuffers);
+    }
+    if(pStrides != NULL) {
+        copy_n(m_rs.IAVertexBufferStrides+StartSlot, NumBuffers, pStrides);
+    }
+    if(pOffsets != NULL) {
+        copy_n(m_rs.IAVertexBufferOffsets+StartSlot, NumBuffers, pOffsets);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::IAGetIndexBuffer( ID3D11Buffer **pIndexBuffer, DXGI_FORMAT *Format, UINT *Offset )
 {
-    addref_and_copy_n(&m_rs.IAIndexBuffer, 1, pIndexBuffer);
-    *Format = m_rs.IAIndexBufferFormat;
-    *Offset = m_rs.IAIndexBufferOffset;
+    if(pIndexBuffer != NULL) {
+        addref_and_copy_n(&m_rs.IAIndexBuffer, 1, pIndexBuffer);
+    }
+    if(Format != NULL) {
+        *Format = m_rs.IAIndexBufferFormat;
+    }
+    if(Offset != NULL) {
+        *Offset = m_rs.IAIndexBufferOffset;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.GSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.GSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GSGetShader( ID3D11GeometryShader **ppGeometryShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.GSShader, 1, ppGeometryShader);
-    addref_and_copy_n(m_rs.GSClassInstances, m_rs.GSNumClassInstances, ppClassInstances);
-    *pNumClassInstances = m_rs.GSNumClassInstances;
+    if(ppGeometryShader != NULL) {
+        addref_and_copy_n(&m_rs.GSShader, 1, ppGeometryShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.GSClassInstances, m_rs.GSNumClassInstances, ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.GSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::IAGetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY *pTopology )
 {
-    *pTopology = m_rs.IAPrimitiveTopology;
+    if(pTopology != NULL) {
+        *pTopology = m_rs.IAPrimitiveTopology;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::VSGetShaderResources( UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView **ppShaderResourceViews )
 {
-    addref_and_copy_n(m_rs.VSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.VSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::VSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.VSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.VSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GetPredication( ID3D11Predicate **ppPredicate, BOOL *pPredicateValue )
@@ -942,18 +1129,26 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::GetPredication( ID3D11Predicate *
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GSGetShaderResources( UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView **ppShaderResourceViews )
 {
-    addref_and_copy_n(m_rs.GSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.GSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.GSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.GSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetRenderTargets( UINT NumViews, ID3D11RenderTargetView **ppRenderTargetViews, ID3D11DepthStencilView **ppDepthStencilView )
 {
-    addref_and_copy_n(m_rs.OMRenderTargets, NumViews, ppRenderTargetViews);
-    addref_and_copy_n(&m_rs.OMDepthStencil, 1, ppDepthStencilView);
+    if(ppRenderTargetViews != NULL) {
+        addref_and_copy_n(m_rs.OMRenderTargets, NumViews, ppRenderTargetViews);
+    }
+    if(ppDepthStencilView !=  NULL) {
+        addref_and_copy_n(&m_rs.OMDepthStencil, 1, ppDepthStencilView);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetRenderTargetsAndUnorderedAccessViews( UINT NumRTVs, ID3D11RenderTargetView **ppRenderTargetViews, ID3D11DepthStencilView **ppDepthStencilView, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView **ppUnorderedAccessViews )
@@ -964,39 +1159,61 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetRenderTargetsAndUnorderedAcc
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetBlendState( ID3D11BlendState **ppBlendState, FLOAT BlendFactor[ 4 ], UINT *pSampleMask )
 {
-    addref_and_copy_n(&m_rs.OMBlendState, 1, ppBlendState);
-    copy_n(m_rs.OMBlendFactor, _countof(m_rs.OMBlendFactor), BlendFactor);
-    *pSampleMask = m_rs.OMBlendSampleMask;
+    if(ppBlendState != NULL) {
+        addref_and_copy_n(&m_rs.OMBlendState, 1, ppBlendState);
+    }
+    if(BlendFactor != NULL) {
+        copy_n(m_rs.OMBlendFactor, _countof(m_rs.OMBlendFactor), BlendFactor);
+    }
+    if(pSampleMask != NULL) {
+        *pSampleMask = m_rs.OMBlendSampleMask;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetDepthStencilState( ID3D11DepthStencilState **ppDepthStencilState, UINT *pStencilRef )
 {
-    addref_and_copy_n(&m_rs.OMDepthStencilState, 1, ppDepthStencilState);
-    *pStencilRef = m_rs.OMStencilRef;
+    if(ppDepthStencilState != NULL) {
+        addref_and_copy_n(&m_rs.OMDepthStencilState, 1, ppDepthStencilState);
+    }
+    if(pStencilRef != NULL) {
+        *pStencilRef = m_rs.OMStencilRef;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::SOGetTargets( UINT NumBuffers, ID3D11Buffer **ppSOTargets )
 {
-    addref_and_copy_n(m_rs.SOTargets, NumBuffers, ppSOTargets);
+    if(ppSOTargets != NULL) {
+        addref_and_copy_n(m_rs.SOTargets, NumBuffers, ppSOTargets);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::RSGetState( ID3D11RasterizerState **ppRasterizerState )
 {
-    addref_and_copy_n(&m_rs.RSRasterState, 1, ppRasterizerState);
+    if(ppRasterizerState != NULL) {
+        addref_and_copy_n(&m_rs.RSRasterState, 1, ppRasterizerState);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::RSGetViewports( 
     UINT *pNumViewports,
     D3D11_VIEWPORT *pViewports)
 {
-    *pNumViewports = m_rs.RSNumViewports;
-    copy_n(m_rs.RSViewports, m_rs.RSNumViewports, pViewports);
+    if(pNumViewports != NULL) {
+        *pNumViewports = m_rs.RSNumViewports;
+    }
+    if(pViewports != NULL) {
+        copy_n(m_rs.RSViewports, m_rs.RSNumViewports, pViewports);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::RSGetScissorRects( UINT *pNumRects, D3D11_RECT *pRects )
 {
-    *pNumRects = m_rs.RSNumScissorRects;
-    copy_n(m_rs.RSScissorRects, m_rs.RSNumScissorRects, pRects);
+    if(pNumRects != NULL) {
+        *pNumRects = m_rs.RSNumScissorRects;
+    }
+    if(pRects != NULL) {
+        copy_n(m_rs.RSScissorRects, m_rs.RSNumScissorRects, pRects);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::HSGetShaderResources( 
@@ -1004,79 +1221,118 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::HSGetShaderResources(
     UINT NumViews,
     ID3D11ShaderResourceView **ppShaderResourceViews)
 {
-    addref_and_copy_n(m_rs.HSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.HSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::HSGetShader( ID3D11HullShader **ppHullShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.HSShader, 1, ppHullShader);
-    addref_and_copy_n(m_rs.HSClassInstances, m_rs.HSNumClassInstances, ppClassInstances);
-    *pNumClassInstances = m_rs.HSNumClassInstances;
+    if(ppHullShader != NULL) {
+        addref_and_copy_n(&m_rs.HSShader, 1, ppHullShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.HSClassInstances, m_rs.HSNumClassInstances, ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.HSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::HSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.HSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.HSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::HSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.HSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.HSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::DSGetShaderResources( UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView **ppShaderResourceViews )
 {
-    addref_and_copy_n(m_rs.DSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.DSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::DSGetShader( ID3D11DomainShader **ppDomainShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.DSShader, 1, ppDomainShader);
-    addref_and_copy_n(m_rs.DSClassInstances, m_rs.DSNumClassInstances, ppClassInstances);
-    *pNumClassInstances = m_rs.DSNumClassInstances;
+    if(ppDomainShader != NULL) {
+        addref_and_copy_n(&m_rs.DSShader, 1, ppDomainShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.DSClassInstances, m_rs.DSNumClassInstances, ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.DSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::DSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.DSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.DSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::DSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.DSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.DSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSGetShaderResources( UINT StartSlot, UINT NumViews, ID3D11ShaderResourceView **ppShaderResourceViews )
 {
-    addref_and_copy_n(m_rs.CSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    if(ppShaderResourceViews != NULL) {
+        addref_and_copy_n(m_rs.CSShaderResources+StartSlot, NumViews, ppShaderResourceViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSGetUnorderedAccessViews( UINT StartSlot, UINT NumUAVs, ID3D11UnorderedAccessView **ppUnorderedAccessViews )
 {
-    addref_and_copy_n(m_rs.CSUnorderedAccesses+StartSlot, NumUAVs, ppUnorderedAccessViews);
+    if(ppUnorderedAccessViews != NULL) {
+        addref_and_copy_n(m_rs.CSUnorderedAccesses+StartSlot, NumUAVs, ppUnorderedAccessViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSGetShader( ID3D11ComputeShader **ppComputeShader, ID3D11ClassInstance **ppClassInstances, UINT *pNumClassInstances )
 {
-    addref_and_copy_n(&m_rs.CSShader, 1, ppComputeShader);
-    addref_and_copy_n(m_rs.CSClassInstances, m_rs.CSNumClassInstances, ppClassInstances);
-    *pNumClassInstances = m_rs.CSNumClassInstances;
+    if(ppComputeShader != NULL) {
+        addref_and_copy_n(&m_rs.CSShader, 1, ppComputeShader);
+    }
+    if(ppClassInstances != NULL) {
+        addref_and_copy_n(m_rs.CSClassInstances, m_rs.CSNumClassInstances, ppClassInstances);
+    }
+    if(pNumClassInstances != NULL) {
+        *pNumClassInstances = m_rs.CSNumClassInstances;
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSGetSamplers( UINT StartSlot, UINT NumSamplers, ID3D11SamplerState **ppSamplers )
 {
-    addref_and_copy_n(m_rs.CSSamplers+StartSlot, NumSamplers, ppSamplers);
+    if(ppSamplers != NULL) {
+        addref_and_copy_n(m_rs.CSSamplers+StartSlot, NumSamplers, ppSamplers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSGetConstantBuffers( UINT StartSlot, UINT NumBuffers, ID3D11Buffer **ppConstantBuffers )
 {
-    addref_and_copy_n(m_rs.CSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    if(ppConstantBuffers != NULL) {
+        addref_and_copy_n(m_rs.CSConstantBuffers+StartSlot, NumBuffers, ppConstantBuffers);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearState( void )
 {
     //m_super->ClearState();
-    // todo: たぶんカバーしきれてない
+    //SyncToActualDeviceContext();
+
     {
         PSSetShader(NULL, NULL, 0);
         VSSetShader(NULL, NULL, 0);
@@ -1115,13 +1371,45 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearState( void )
         DSSetSamplers(0, _countof(NULLSamplers), NULLSamplers);
         CSSetSamplers(0, _countof(NULLSamplers), NULLSamplers);
     }
+    {
+        ID3D11UnorderedAccessView *NullUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT];
+        UINT ZeroInitialCounts[D3D11_PS_CS_UAV_REGISTER_COUNT];
+        std::fill_n(NullUAVs, _countof(NullUAVs), (ID3D11UnorderedAccessView*)NULL);
+        std::fill_n(ZeroInitialCounts, _countof(ZeroInitialCounts), 0);
+        CSSetUnorderedAccessViews(0, _countof(NullUAVs), NullUAVs, ZeroInitialCounts);
+    }
+    {
+        ID3D11Buffer *NullTargets[D3D11_SO_BUFFER_SLOT_COUNT];
+        UINT ZeroOffsets[D3D11_SO_BUFFER_SLOT_COUNT];
+        std::fill_n(NullTargets, _countof(NullTargets), (ID3D11Buffer*)NULL);
+        std::fill_n(ZeroOffsets, _countof(ZeroOffsets), 0);
+        SOSetTargets(_countof(NullTargets), NullTargets, ZeroOffsets);
+    }
+
+    {
+        ID3D11Buffer *NullBuffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        UINT ZeroStrides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        UINT ZeroOffsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        std::fill_n(NullBuffers, _countof(NullBuffers), (ID3D11Buffer*)NULL);
+        std::fill_n(ZeroStrides, _countof(ZeroStrides), 0);
+        std::fill_n(ZeroOffsets, _countof(ZeroOffsets), 0);
+        IASetVertexBuffers(0, _countof(NullBuffers), NullBuffers, ZeroStrides, ZeroOffsets);
+    }
     IASetInputLayout(NULL);
+    IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, 0);
     IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
+
+    {
+        ID3D11RenderTargetView *NullRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        std::fill_n(NullRTVs, _countof(NullRTVs), (ID3D11RenderTargetView*)NULL);
+        OMSetRenderTargets(_countof(NullRTVs), NullRTVs, NULL);
+    }
+    OMSetBlendState(NULL, NULL, 0xffffffff);
+    OMSetDepthStencilState(NULL, 0);
+
     RSSetScissorRects(0, NULL);
     RSSetViewports(0, NULL);
     RSSetState(NULL);
-    OMSetBlendState(NULL, NULL, 0xffffffff);
-    OMSetDepthStencilState(NULL, 0xffffffff);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::Flush( void )
