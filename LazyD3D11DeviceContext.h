@@ -70,8 +70,11 @@ public:
         ID3D11Buffer *IAVertexBuffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
         UINT IAVertexBufferStrides[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
         UINT IAVertexBufferOffsets[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        UINT OMNumRenderTargets;
         ID3D11RenderTargetView *OMRenderTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
         ID3D11DepthStencilView *OMDepthStencil;
+        UINT OMOnorderedAccessStartSlot;
+        UINT OMNumOnorderedAccess;
         ID3D11UnorderedAccessView *OMUnorderedAccesses[D3D11_PS_CS_UAV_REGISTER_COUNT];
         UINT OMUnorderedInitialCounts[D3D11_PS_CS_UAV_REGISTER_COUNT];
         ID3D11BlendState *OMBlendState;

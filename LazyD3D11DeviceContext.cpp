@@ -38,6 +38,57 @@ inline void release_n(Iter1 first1, int n)
     }
 }
 
+template<class T, int N>
+inline int release_n(const T (&ary)[N])
+{
+    return release_n(ary, N);
+}
+
+
+template<class Iter1>
+inline int count_valid_pointers(Iter1 first1, int n)
+{
+    int r = 0;
+    Iter1 last1 = first1 + n;
+    for(Iter1 i=first1; i!=last1; ++i) {
+        if(*i!=NULL) {
+            ++r;
+        }
+        else {
+            break;
+        }
+    }
+    return r;
+}
+
+template<class T, int N>
+inline int count_valid_pointers(const T (&ary)[N])
+{
+    return count_valid_pointers(ary, N);
+}
+
+
+template<class Iter1>
+inline int first_valid_pointer(Iter1 first1, int n)
+{
+    int r = 0;
+    Iter1 last1 = first1 + n;
+    for(Iter1 i=first1; i!=last1; ++i) {
+        if(*i==NULL) {
+            ++r;
+        }
+        else {
+            break;
+        }
+    }
+    return r;
+}
+
+template<class T, int N>
+inline int first_valid_pointer(const T (&ary)[N])
+{
+    return first_valid_pointer(ary, N);
+}
 
 
 
@@ -129,7 +180,8 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
 
 
     if(m_cs.OMSetRenderTargets) {
-        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
+        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
+            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil )
         {
             // RenderTarget に設定されているリソースを ShaderResource に設定しようとすると強制的に NULL にされるため、
@@ -141,10 +193,13 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
         }
     }
     if(m_cs.OMSetRenderTargetsAndUnorderedAccessViews) {
-        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
+        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
+            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil ||
-            !equal_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses) ||
-            !equal_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts) )
+            m_rs.OMOnorderedAccessStartSlot!=m_rsp.OMOnorderedAccessStartSlot ||
+            m_rs.OMNumOnorderedAccess!=m_rsp.OMNumOnorderedAccess ||
+            !equal_n(m_rs.OMUnorderedAccesses, m_rs.OMNumOnorderedAccess, m_rsp.OMUnorderedAccesses) ||
+            !equal_n(m_rs.OMUnorderedInitialCounts, m_rs.OMNumOnorderedAccess, m_rsp.OMUnorderedInitialCounts) )
         {
             // 同上
             ID3D11RenderTargetView *NullRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
@@ -154,7 +209,7 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
             std::fill_n(NullUAVs, _countof(NullUAVs), (ID3D11UnorderedAccessView*)NULL);
             std::fill_n(UAVInitialCounts, _countof(UAVInitialCounts), 0);
             m_super->OMSetRenderTargetsAndUnorderedAccessViews(
-                _countof(NullRTVs), NullRTVs, NULL,
+                0, NullRTVs, NULL,
                 0, _countof(NullUAVs), NullUAVs, UAVInitialCounts);
         }
     }
@@ -335,25 +390,33 @@ void LazyD3D11DeviceContext::AcualSetRenderState()
 
 
     if(m_cs.OMSetRenderTargets) {
-        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
+        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
+            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil )
         {
-            m_super->OMSetRenderTargets(_countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, m_rs.OMDepthStencil);
+            m_super->OMSetRenderTargets(m_rs.OMNumRenderTargets, m_rs.OMRenderTargets, m_rs.OMDepthStencil);
+            m_rsp.OMNumRenderTargets = m_rs.OMNumRenderTargets;
             copy_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets);
             m_rsp.OMDepthStencil = m_rs.OMDepthStencil;
         }
     }
     if(m_cs.OMSetRenderTargetsAndUnorderedAccessViews) {
-        if( !equal_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets) ||
+        if( m_rs.OMNumRenderTargets!=m_rsp.OMNumRenderTargets ||
+            !equal_n(m_rs.OMRenderTargets, m_rs.OMNumRenderTargets, m_rsp.OMRenderTargets) ||
             m_rs.OMDepthStencil!=m_rsp.OMDepthStencil ||
-            !equal_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses) ||
-            !equal_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts) )
+            m_rs.OMOnorderedAccessStartSlot!=m_rsp.OMOnorderedAccessStartSlot ||
+            m_rs.OMNumOnorderedAccess!=m_rsp.OMNumOnorderedAccess ||
+            !equal_n(m_rs.OMUnorderedAccesses, m_rs.OMNumOnorderedAccess, m_rsp.OMUnorderedAccesses) ||
+            !equal_n(m_rs.OMUnorderedInitialCounts, m_rs.OMNumOnorderedAccess, m_rsp.OMUnorderedInitialCounts) )
         {
             m_super->OMSetRenderTargetsAndUnorderedAccessViews(
-                _countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, m_rs.OMDepthStencil,
-                0, _countof(m_rs.OMUnorderedAccesses), m_rs.OMUnorderedAccesses, m_rs.OMUnorderedInitialCounts);
+                m_rs.OMNumRenderTargets, m_rs.OMRenderTargets, m_rs.OMDepthStencil,
+                m_rs.OMOnorderedAccessStartSlot, m_rs.OMNumOnorderedAccess, m_rs.OMUnorderedAccesses, m_rs.OMUnorderedInitialCounts);
+            m_rsp.OMNumRenderTargets = m_rs.OMNumRenderTargets;
             copy_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), m_rsp.OMRenderTargets);
             m_rsp.OMDepthStencil = m_rs.OMDepthStencil;
+            m_rsp.OMOnorderedAccessStartSlot = m_rs.OMOnorderedAccessStartSlot;
+            m_rsp.OMNumOnorderedAccess = m_rs.OMNumOnorderedAccess;
             copy_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), m_rsp.OMUnorderedAccesses);
             copy_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), m_rsp.OMUnorderedInitialCounts);
         }
@@ -490,12 +553,22 @@ void LazyD3D11DeviceContext::SyncToActualDeviceContext()
     m_super->IAGetPrimitiveTopology(&m_rs.IAPrimitiveTopology);
 
     m_super->OMGetRenderTargets(_countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, &m_rs.OMDepthStencil);
+    m_rs.OMNumRenderTargets = count_valid_pointers(m_rs.OMRenderTargets);
     release_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets));
     release_n(&m_rs.OMDepthStencil, 1);
 
     m_super->OMGetRenderTargetsAndUnorderedAccessViews(
         _countof(m_rs.OMRenderTargets), m_rs.OMRenderTargets, &m_rs.OMDepthStencil,
         0, _countof(m_rs.OMUnorderedAccesses), m_rs.OMUnorderedAccesses);
+    m_rs.OMNumRenderTargets = count_valid_pointers(m_rs.OMRenderTargets);
+    m_rs.OMOnorderedAccessStartSlot = first_valid_pointer(m_rs.OMUnorderedAccesses);
+    if(m_rs.OMOnorderedAccessStartSlot==_countof(m_rs.OMUnorderedAccesses)) {
+        m_rs.OMOnorderedAccessStartSlot = 0;
+        m_rs.OMNumOnorderedAccess = 0;
+    }
+    else {
+        m_rs.OMNumOnorderedAccess = count_valid_pointers(m_rs.OMUnorderedAccesses+m_rs.OMOnorderedAccessStartSlot, _countof(m_rs.OMUnorderedAccesses)-m_rs.OMOnorderedAccessStartSlot);
+    }
     release_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets));
     release_n(&m_rs.OMDepthStencil, 1);
     release_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses));
@@ -736,7 +809,12 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::CSSetUnorderedAccessViews( UINT S
 {
     m_cs.CSSetUnorderedAccessViews = true;
     copy_n(ppUnorderedAccessViews, NumUAVs, m_rs.CSUnorderedAccesses+StartSlot);
-    copy_n(pUAVInitialCounts, NumUAVs, m_rs.CSUnorderedInitialCounts+StartSlot);
+    if(pUAVInitialCounts==NULL) {
+        fill_n(m_rs.CSUnorderedInitialCounts+StartSlot, NumUAVs, 0);
+    }
+    else {
+        copy_n(pUAVInitialCounts, NumUAVs, m_rs.CSUnorderedInitialCounts+StartSlot);
+    }
 }
 
 
@@ -798,7 +876,7 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::RSSetScissorRects( UINT NumRects,
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargets( UINT NumViews, ID3D11RenderTargetView *const *ppRenderTargetViews, ID3D11DepthStencilView *pDepthStencilView)
 {
     m_cs.OMSetRenderTargets = true;
-    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
+    m_rs.OMNumRenderTargets = NumViews;
     copy_n(ppRenderTargetViews, NumViews, m_rs.OMRenderTargets);
     m_rs.OMDepthStencil = pDepthStencilView;
 }
@@ -806,8 +884,12 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargets( UINT NumViews
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(  UINT NumRTVs, ID3D11RenderTargetView *const *ppRenderTargetViews, ID3D11DepthStencilView *pDepthStencilView, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView *const *ppUnorderedAccessViews, const UINT *pUAVInitialCounts)
 {
     m_cs.OMSetRenderTargetsAndUnorderedAccessViews = true;
-    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
-    copy_n(ppRenderTargetViews, NumRTVs, m_rs.OMRenderTargets);    m_rs.OMDepthStencil = pDepthStencilView;
+    m_rs.OMNumRenderTargets = NumRTVs;
+    copy_n(ppRenderTargetViews, NumRTVs, m_rs.OMRenderTargets);
+    m_rs.OMDepthStencil = pDepthStencilView;
+
+    m_rs.OMOnorderedAccessStartSlot = UAVStartSlot;
+    m_rs.OMNumOnorderedAccess = NumUAVs;
     copy_n(ppUnorderedAccessViews, NumUAVs, m_rs.OMUnorderedAccesses+UAVStartSlot);
     copy_n(pUAVInitialCounts, NumUAVs, m_rs.OMUnorderedInitialCounts+UAVStartSlot);
 }
