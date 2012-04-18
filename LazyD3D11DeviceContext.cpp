@@ -877,6 +877,7 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargets( UINT NumViews
 {
     m_cs.OMSetRenderTargets = true;
     m_rs.OMNumRenderTargets = NumViews;
+    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
     copy_n(ppRenderTargetViews, NumViews, m_rs.OMRenderTargets);
     m_rs.OMDepthStencil = pDepthStencilView;
 }
@@ -885,11 +886,14 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMSetRenderTargetsAndUnorderedAcc
 {
     m_cs.OMSetRenderTargetsAndUnorderedAccessViews = true;
     m_rs.OMNumRenderTargets = NumRTVs;
+    fill_n(m_rs.OMRenderTargets, _countof(m_rs.OMRenderTargets), (ID3D11RenderTargetView*)NULL);
     copy_n(ppRenderTargetViews, NumRTVs, m_rs.OMRenderTargets);
     m_rs.OMDepthStencil = pDepthStencilView;
 
     m_rs.OMOnorderedAccessStartSlot = UAVStartSlot;
     m_rs.OMNumOnorderedAccess = NumUAVs;
+    fill_n(m_rs.OMUnorderedAccesses, _countof(m_rs.OMUnorderedAccesses), (ID3D11UnorderedAccessView*)NULL);
+    fill_n(m_rs.OMUnorderedInitialCounts, _countof(m_rs.OMUnorderedInitialCounts), 0);
     copy_n(ppUnorderedAccessViews, NumUAVs, m_rs.OMUnorderedAccesses+UAVStartSlot);
     copy_n(pUAVInitialCounts, NumUAVs, m_rs.OMUnorderedInitialCounts+UAVStartSlot);
 }
@@ -1235,8 +1239,15 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetRenderTargets( UINT NumViews
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetRenderTargetsAndUnorderedAccessViews( UINT NumRTVs, ID3D11RenderTargetView **ppRenderTargetViews, ID3D11DepthStencilView **ppDepthStencilView, UINT UAVStartSlot, UINT NumUAVs, ID3D11UnorderedAccessView **ppUnorderedAccessViews )
 {
-    OMGetRenderTargets(NumRTVs, ppRenderTargetViews, ppDepthStencilView);
-    CSGetUnorderedAccessViews(UAVStartSlot, NumUAVs, ppUnorderedAccessViews);
+    if(ppRenderTargetViews != NULL) {
+        addref_and_copy_n(m_rs.OMRenderTargets, NumRTVs, ppRenderTargetViews);
+    }
+    if(ppDepthStencilView !=  NULL) {
+        addref_and_copy_n(&m_rs.OMDepthStencil, 1, ppDepthStencilView);
+    }
+    if(ppUnorderedAccessViews != NULL) {
+        addref_and_copy_n(m_rs.OMUnorderedAccesses+UAVStartSlot, NumUAVs, ppUnorderedAccessViews);
+    }
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::OMGetBlendState( ID3D11BlendState **ppBlendState, FLOAT BlendFactor[ 4 ], UINT *pSampleMask )
