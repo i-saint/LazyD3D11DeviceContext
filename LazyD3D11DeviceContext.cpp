@@ -980,12 +980,14 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::DispatchIndirect( ID3D11Buffer *p
 
 HRESULT STDMETHODCALLTYPE LazyD3D11DeviceContext::Map( ID3D11Resource *pResource, UINT Subresource, D3D11_MAP MapType, UINT MapFlags, D3D11_MAPPED_SUBRESOURCE *pMappedResource )
 {
+    AcualSetRenderState();
     HRESULT r = m_super->Map(pResource, Subresource, MapType, MapFlags, pMappedResource);
     return r;
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::Unmap( ID3D11Resource *pResource, UINT Subresource )
 {
+    AcualSetRenderState();
     m_super->Unmap(pResource, Subresource);
 }
 
@@ -1013,42 +1015,50 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::SetPredication( ID3D11Predicate *
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CopySubresourceRegion( ID3D11Resource *pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox )
 {
+    AcualSetRenderState();
     m_super->CopySubresourceRegion(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CopyResource( ID3D11Resource *pDstResource, ID3D11Resource *pSrcResource )
 {
+    AcualSetRenderState();
     m_super->CopyResource(pDstResource, pSrcResource);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::UpdateSubresource( ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox, const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch )
 {
+    AcualSetRenderState();
     m_super->UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::CopyStructureCount( ID3D11Buffer *pDstBuffer, UINT DstAlignedByteOffset, ID3D11UnorderedAccessView *pSrcView )
 {
+    AcualSetRenderState();
     m_super->CopyStructureCount(pDstBuffer, DstAlignedByteOffset, pSrcView);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearRenderTargetView( ID3D11RenderTargetView *pRenderTargetView, const FLOAT ColorRGBA[ 4 ] )
 {
+    AcualSetRenderState();
     m_super->ClearRenderTargetView(pRenderTargetView, ColorRGBA);
+}
+
+void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearDepthStencilView( ID3D11DepthStencilView *pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil )
+{
+    AcualSetRenderState();
+    m_super->ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearUnorderedAccessViewUint( ID3D11UnorderedAccessView *pUnorderedAccessView, const UINT Values[ 4 ] )
 {
+    AcualSetRenderState();
     m_super->ClearUnorderedAccessViewUint(pUnorderedAccessView, Values);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearUnorderedAccessViewFloat( ID3D11UnorderedAccessView *pUnorderedAccessView, const FLOAT Values[ 4 ] )
 {
+    AcualSetRenderState();
     m_super->ClearUnorderedAccessViewFloat(pUnorderedAccessView, Values);
-}
-
-void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearDepthStencilView( ID3D11DepthStencilView *pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil )
-{
-    m_super->ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GenerateMips( ID3D11ShaderResourceView *pShaderResourceView )
@@ -1069,11 +1079,13 @@ FLOAT STDMETHODCALLTYPE LazyD3D11DeviceContext::GetResourceMinLOD( ID3D11Resourc
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ResolveSubresource( ID3D11Resource *pDstResource, UINT DstSubresource, ID3D11Resource *pSrcResource, UINT SrcSubresource, DXGI_FORMAT Format )
 {
+    AcualSetRenderState();
     m_super->ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format);
 }
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::ExecuteCommandList( ID3D11CommandList *pCommandList, BOOL RestoreContextState )
 {
+    AcualSetRenderState();
     m_super->ExecuteCommandList(pCommandList, RestoreContextState);
     if(!RestoreContextState) {
         SyncToActualDeviceContext();
