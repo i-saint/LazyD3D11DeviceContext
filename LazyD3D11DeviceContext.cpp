@@ -1063,6 +1063,7 @@ void STDMETHODCALLTYPE LazyD3D11DeviceContext::ClearUnorderedAccessViewFloat( ID
 
 void STDMETHODCALLTYPE LazyD3D11DeviceContext::GenerateMips( ID3D11ShaderResourceView *pShaderResourceView )
 {
+    AcualSetRenderState();
     m_super->GenerateMips(pShaderResourceView);
 }
 
