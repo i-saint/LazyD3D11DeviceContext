@@ -150,7 +150,7 @@ private:
 public:
     static ID3D11DeviceContext* Create(ID3D11DeviceContext *_super);
 
-    void SetDeviceContext(ID3D11DeviceContext *v)   { m_supe=v; }
+    void SetDeviceContext(ID3D11DeviceContext *v)   { m_super=v; }
     const RenderStates& GetRenderStates() const     { return m_rs; }
     const RenderStates& GetPrevRenderStates() const { return m_rsp; }
     const CallStates& GetCallStates() const         { return m_cs; }
