@@ -143,14 +143,14 @@ private:
     RenderStates m_rs;
     CallStates m_cs;
 
-    void AcualSetRenderState();
+    void ActualSetRenderState();
     void SyncToActualDeviceContext();
     LazyD3D11DeviceContext(ID3D11DeviceContext *_super);
 
 public:
     static ID3D11DeviceContext* Create(ID3D11DeviceContext *_super);
 
-    void SetDeviceContext(ID3D11DeviceContext *v)   { m_super=v; }
+    void SetDeviceContext(ID3D11DeviceContext *v)   { m_supe=v; }
     const RenderStates& GetRenderStates() const     { return m_rs; }
     const RenderStates& GetPrevRenderStates() const { return m_rsp; }
     const CallStates& GetCallStates() const         { return m_cs; }
